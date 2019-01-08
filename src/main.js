@@ -27,7 +27,8 @@ class App extends React.Component {
 					),
 					h('tr', null,
 						h('td', null, 'Date2'),
-						h('td', null, h(DatePicker, {id: 'date2', value: this.state.date2, onChange: this.onChange}))
+						h('td', null, h(DatePicker, {id: 'date2', value: this.state.date2, displayFormat: 'DD-MMM-YYYY',
+							onChange: val => this.setState({date2: val})}))
 					),
 					h('tr', null,
 						h('td', null, ''),
@@ -41,4 +42,5 @@ class App extends React.Component {
 }
 
 // render the application
+console.log('React.version', React.version);
 ReactDOM.render(h(App), document.getElementById('root'));

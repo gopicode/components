@@ -4,10 +4,6 @@ import './DatePicker.less';
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const NBSP = '\u00a0'; // unicode for entity &nbsp;
 
-function later(fn) {
-	setTimeout(fn, 10);
-}
-
 function genId() {
 	return Math.random().toString(36).substr(2, 9);
 }
@@ -16,33 +12,24 @@ function pad(d) {
 	return ('0' + d).substr(-2);
 }
 
-function formatDate(dt, formatStr) {
-	var yyyy = dt.getFullYear();
-	var mm = pad(dt.getMonth() + 1);
-	var dd = pad(dt.getDate());
-	return formatStr.replace('YYYY', yyyy).replace('MM', mm).replace('DD', dd);
+function formatDate(dt, formatStr = 'YYYY-MM-DD') {
+	if (!(dt && dt instanceof Date)) return '';
+	const yyyy = dt.getFullYear();
+	const mm = pad(dt.getMonth() + 1);
+	const dd = pad(dt.getDate());
+	const mon = MONTH_NAMES[dt.getMonth() + 1];
+	return formatStr.replace('YYYY', yyyy).replace('MMM', mon).replace('MM', mm).replace('DD', dd);
 }
 
 function compareDates(a, b) {
-	var s1 = formatDate(a, 'YYYY-MM-DD');
-	var s2 = formatDate(b, 'YYYY-MM-DD');
+	const s1 = formatDate(a);
+	const s2 = formatDate(b);
 	return (s1 > s2) ? 1 : (s1 < s2) ? -1 : 0;
 }
 
 function isSameDate(a, b) {
-	return compareDates(a, b) === 0;
-	// return (one.getFullYear() === two.getFullYear()) && (one.getMonth() === two.getMonth()) && (one.getDate() === two.getDate());
-}
-
-function findParent(el, fn) {
-	var ptr = el;
-	while (ptr && ptr != document) {
-		if (fn(ptr)) {
-			return ptr;
-		}
-		ptr = ptr.parentNode;
-	}
-	return null;
+	// return compareDates(a, b) === 0;
+	return (a.getFullYear() === b.getFullYear()) && (a.getMonth() === b.getMonth()) && (a.getDate() === b.getDate());
 }
 
 // console.log('compare GT', compareDates(new Date(2016, 7, 30), new Date(2016, 7, 28)));
@@ -54,78 +41,57 @@ function findParent(el, fn) {
 // console.log('compare LT', compareDates(new Date(2016, 7, 30), new Date(2016, 8, 28)));
 // console.log('compare EQ', compareDates(new Date(2016, 7, 21), new Date(2016, 7, 21)));
 
+
+function buildState(props, state) {
+	const dt = props.value ? props.value : new Date();
+	const year = dt.getFullYear();
+	const month = dt.getMonth() + 1;
+	return {
+		id: props.id || (state && state.id) || ('dt-picker-' + genId()),
+		show: false,
+		year,
+		month
+	};
+}
 
 export class DatePicker extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = this.getStateFromProps(this.props);
-
-		this.onDocumentClick = this.onDocumentClick.bind(this)
-		// this.show = this.show.bind(this)
-		// this.hide = this.hide.bind(this)
-		this.onInputFocus = this.onInputFocus.bind(this)
-		this.onToggle = this.onToggle.bind(this)
-		this.onClear = this.onClear.bind(this)
-		this.onMove = this.onMove.bind(this)
-		// this.choose = this.choose.bind(this)
-	}
-
-	getStateFromProps(props) {
-		var dt = props.value ? props.value : new Date();
-		var year = dt.getFullYear();
-		var month = dt.getMonth() + 1;
-		var state = {
-			show: false,
-			year,
-			month
-		};
-		// console.log('getStateFromProps', state, this.props.id);
-		return state;
-	}
-
-	componentWillMount() {
-		if (!this.props.id) {
-			this.setState({id: 'dt-picker-' + genId()});
-		}
-	}
-
-	componentWillReceiveProps(nextProps) {
-		if (!this.props.showCalendarStatic) {
-			if (this.props.value === nextProps.value) return;
-			if (this.props.value && nextProps.value && isSameDate(this.props.value, nextProps.value)) return;
-		}
-		// console.log('componentWillReceiveProps begin', (this.props.id || this.state.id), this.props.value, nextProps.value);
-		var state = this.getStateFromProps(nextProps);
-		this.setState(state);
-		// console.log('componentWillReceiveProps end', (this.props.id || this.state.id));
+		this.state = buildState(props);
+		this.rootRef = React.createRef();
+		this.onDocumentClick = this.onDocumentClick.bind(this);
+		this.onInputFocus = this.onInputFocus.bind(this);
+		this.onClear = this.onClear.bind(this);
 	}
 
 	componentDidMount() {
-		if (this.props.showCalendarStatic) return;
-		// document.addEventListener('click', this.onDocumentClick);
 	}
 
-	componentWillUnmount() {
-		if (this.props.showCalendarStatic) return;
-		// document.removeEventListener('click', this.onDocumentClick);
+	// Do NOT blindly call setState. It should be conditional. Otherwise, we will endup in infinite loop
+	// Read more: https://reactjs.org/docs/react-component.html
+	componentDidUpdate(prevProps, prevState, snapshot) {
+		if (prevProps.value === this.props.value) return;
+		if (prevProps.value && this.props.value && isSameDate(this.props.value, prevProps.value)) return;
+		console.log('componentDidUpdate', this.props.id, formatDate(prevProps.value), formatDate(this.props.value));
+		const state = buildState(this.props, this.state);
+		this.setState(state);
 	}
 
-	onDocumentClick(e) {
-		var id = this.props.id || this.state.id;
-		var rootEl = document.getElementById(id);
-		var inside = !!findParent(e.target, el => el === rootEl);
-		// console.log(id, 'onDocumentClick inside:', inside);
-		if (!inside) {
-			this.hide();
-		}
+	// componentWillReceiveProps lifecycle is deprecated
+	// use componentDidUpdate lifecyle to conditionally update the state from props changes (check above)
+	__componentWillReceiveProps(nextProps) {
+		console.log('componentWillReceiveProps', nextProps.id, nextProps.value);
+		if (this.props.value === nextProps.value) return;
+		if (this.props.value && nextProps.value && isSameDate(this.props.value, nextProps.value)) return;
+		const state = buildState(nextProps, this.state);
+		this.setState(state);
 	}
 
 	show() {
-		if (this.props.showCalendarStatic) return;
 		if (this.props.value) {
-			var dt = this.props.value;
-			var year = dt.getFullYear();
-			var month = dt.getMonth() + 1;
+			const dt = this.props.value;
+			const year = dt.getFullYear();
+			const month = dt.getMonth() + 1;
 			this.setState({
 				year,
 				month
@@ -136,33 +102,36 @@ export class DatePicker extends React.Component {
 	}
 
 	hide() {
-		if (this.props.showCalendarStatic) return;
 		document.removeEventListener('click', this.onDocumentClick);
 		this.setState({show: false});
 	}
 
-	onInputFocus(e) {
-		this.show();
+	onDocumentClick(e) {
+		// const $root = document.getElementById(this.state.id);
+		const $root = this.rootRef.current;
+		if ($root && !$root.contains(e.target)) {
+			this.hide();
+		}
 	}
 
-	onToggle() {
-		this.state.show ? this.hide() : this.show();
+	onInputFocus() {
+		this.show();
 	}
 
 	onClear() {
 		this.setState({value: null});
-		this.props.onChange(null, this.props.id);
+		this.props.onChange(null, this.state.id);
 	}
 
-	onMove(year, month) {
-		later(() => this.setState({year, month}));
+	move(year, month) {
+		this.setState({year, month});
 	};
 
 	choose(day) {
 		if (!day) return
-		var dt = new Date(this.state.year, this.state.month - 1, day);
+		const dt = new Date(this.state.year, this.state.month - 1, day);
 		this.hide();
-		this.props.onChange(dt, this.props.id);
+		this.props.onChange(dt, this.state.id);
 	}
 
 	chooser(val) {
@@ -175,9 +144,9 @@ export class DatePicker extends React.Component {
 	};
 
 	renderTable(year, month) {
-		var grid = [];
-		var mon = month - 1;
-		var i, j, k, d;
+		const grid = [];
+		const mon = month - 1;
+		let i, j, k, d;
 		for (i = 0; i < 6; i += 1) {
 			for (j = 0; j < 7; j += 1) {
 				k = i * 7 + j;
@@ -185,10 +154,10 @@ export class DatePicker extends React.Component {
 			}
 		}
 
-		var firstDate = new Date(year, mon, 1);
-		var firstDay = firstDate.getDay();
-		var lday = 32;
-		var lastDate;
+		const firstDate = new Date(year, mon, 1);
+		const firstDay = firstDate.getDay();
+		let lday = 32;
+		let lastDate;
 		do {
 			lday -= 1;
 			lastDate = new Date(year, mon, lday);
@@ -199,17 +168,16 @@ export class DatePicker extends React.Component {
 		}
 		// console.log('grid', year, month, grid);
 
-		var selDate = this.props.value ? this.props.value.getDate() : 0;
-		var rows = [];
+		const selDate = this.props.value ? this.props.value.getDate() : 0;
+		const rows = [];
 		for (i = 0; i < 6; i += 1) {
-			var cols = [];
+			const cols = [];
 			for (j = 0; j < 7; j += 1) {
 				k = i * 7 + j;
-				var val = grid[k];
-				var dt;
-				var css = [];
+				const val = grid[k];
+				const css = [];
 				if (val !== NBSP) {
-					dt = new Date(this.state.year, this.state.month - 1, val);
+					let dt = new Date(this.state.year, this.state.month - 1, val);
 					css.push('enabled');
 					if (this.props.value && isSameDate(dt, this.props.value)) css.push('selected');
 				}
@@ -238,31 +206,30 @@ export class DatePicker extends React.Component {
 
 
 	render() {
-		var state = this.state;
-		var props = this.props;
-		var id = props.id || state.id;
+		const state = this.state;
+		const props = this.props;
+		const id = state.id;
 
-		var calStatic = props.showCalendarStatic ? 'static' : '';
-		var calHide = props.showCalendarStatic ? '' : state.show ? '' : 'hide';
-		var clear = props.clearable && props.value ? h('span', {className: 'date-picker__input-icox', onClick: this.onClear}, '\u2715') : null;
+		const calHide = state.show ? '' : 'hide';
+		const clear = props.clearable && props.value ? h('span', {className: 'date-picker__input-icox', onClick: this.onClear}, '\u2715') : null;
 
-		return h('div', {id: id, className: 'date-picker ' + props.className, style: props.style},
+		return h('div', {ref: this.rootRef, id: id, className: 'date-picker ' + props.className},
 			h('div', {className: 'date-picker__input'},
 				h('input', {className: 'date-picker__input-txt', type: 'text', value: this.formatValue(),
 					placeholder: props.placeholder, onFocus: this.onInputFocus}),
 				clear
 			),
-			h('div', {className: ['date-picker__panel ', calHide, calStatic].join(' ') },
+			h('div', {className: ['date-picker__panel ', calHide].join(' ') },
 				h('div', {className: 'date-picker__nav'},
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-double-left',
-						onClick: e => this.onMove(state.year - 1, state.month)}),
+						onClick: e => this.move(state.year - 1, state.month)}),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-left',
-						onClick: e => this.onMove(state.year, state.month - 1)}),
+						onClick: e => this.move(state.year, state.month - 1)}),
 					h('span', {className: 'date-picker__nav-mnyr'}, MONTH_NAMES[state.month], ' ', state.year),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-right',
-						onClick: e => this.onMove(state.year, state.month + 1)}),
+						onClick: e => this.move(state.year, state.month + 1)}),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-double-right',
-						onClick: e => this.onMove(state.year + 1, state.month)})
+						onClick: e => this.move(state.year + 1, state.month)})
 				),
 				this.renderTable(state.year, state.month)
 			)
@@ -271,12 +238,10 @@ export class DatePicker extends React.Component {
 };
 
 DatePicker.defaultProps = {
-	value: null,
-	style: null,
+	value: null, // null | Date object
 	className: '',
-	displayFormat: 'DD-MM-YYYY',
+	displayFormat: 'DD-MM-YYYY', // options: YYYY=FullYear, MMM=MonthName, MM=Month, DD=Day
 	placeholder: 'Select...',
 	clearable: true,
-	showCalendarStatic: false,
 	onChange: function(){}
 };
