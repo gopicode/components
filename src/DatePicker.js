@@ -119,7 +119,6 @@ export class DatePicker extends React.Component {
 	}
 
 	onClear() {
-		this.setState({value: null});
 		this.props.onChange(null, this.state.id);
 	}
 

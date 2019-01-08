@@ -1,10 +1,9 @@
 import {h} from './h.js'
 import './Button.css';
 
-export class Button extends React.Component {
-	render() {
-		const {children, ...props} = this.props;
-		props.className = 'btn';
-		return h('button', props, children);
-	}
+// Refer: http://exploringjs.com/es6/ch_destructuring.html for ...rest syntax
+export function Button(propsAll) {
+	const {children, ...props} = propsAll;
+	props.className = 'btn';
+	return h('button', props, children);
 }
