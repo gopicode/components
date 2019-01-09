@@ -1,0 +1,21 @@
+.zPu-suggest {
+	position: relative;
+	display: inline-block;
+}
+.zPu-suggest-list {
+}
+.zPu-suggest-input {
+	width: 20em;
+}
+.zPu-suggest-select {
+	width: 20em;
+	position: absolute;
+}
+.zPu-suggest-overlay {
+	background: white;
+	z-index: 1;
+	position: absolute;
+	right: 1px;
+	left: 1px;
+	margin-top: 1px;
+}

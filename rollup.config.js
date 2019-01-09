@@ -1,5 +1,7 @@
-// import less from 'rollup-plugin-less';
 import postcss from 'rollup-plugin-postcss';
+import babel from 'rollup-plugin-babel';
+
+const babelConfig = require('./.babelrc.js');
 
 module.exports = {
     input: 'src/main.js',
@@ -12,7 +14,7 @@ module.exports = {
         	plugins: [],
         	extract: true,
         	use: ['less']
-        	// output: 'dist/'
-        })
+        }),
+        babel(babelConfig)
     ]
 }

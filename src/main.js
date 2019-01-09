@@ -1,6 +1,7 @@
 import {h} from './h.js'
 import {Button} from './Button.js'
 import {DatePicker} from './DatePicker.js'
+import {ComboBox} from './ComboBox.jsx'
 
 class App extends React.Component {
 	constructor(props) {
