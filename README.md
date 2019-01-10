@@ -1,9 +1,10 @@
 # Overview
-Using modern javascript syntax directly in the browser without using any transpiler (like Babel). `React.createElement` is used as helper function `h` instead of JSX syntax. The react and react-dom libraries are include directly in the index.html file. Hence, they are globally available.
+UI components library built using React
 
 # Dependencies
 - React [v16.7.0](https://reactjs.org/versions)
 - [Rollup](https://rollupjs.org) is used for bundling along with [postcss](https://www.npmjs.com/package/rollup-plugin-postcss) plugin
+- [Babel](https://babeljs.io/) for transpiling JSX
 - [BEM](http://getbem.com/introduction/) convention is followed for styles
 - [FontAwesome](https://fontawesome.com/icons?d=gallery&m=free) for icons.
 
@@ -25,5 +26,3 @@ Open another terminal tab and run below. This will start the rollup in watch mod
 ```bash
 npm run dev
 ```
-
-

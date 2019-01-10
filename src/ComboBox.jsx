@@ -1,24 +1,33 @@
-// import {h} from './h.js'
 import './ComboBox.css';
+import PropTypes from 'prop-types';
 
 export class ComboBox extends React.PureComponent {
 	constructor(props) {
 		super(props);
+
+		this.state = {
+			showList: false
+		};
+
+		this.inputRef = React.createRef();
+		this.selectRef = React.createRef();
+
 		this.onInputFocus = this.onInputFocus.bind(this);
 		this.onInputBlur = this.onInputBlur.bind(this);
 		this.onInputKeyDown = this.onInputKeyDown.bind(this);
 		this.onSelectBlur = this.onSelectBlur.bind(this);
 		this.onSelectKeyDown = this.onSelectKeyDown.bind(this);
-		this.onItemClick = this.onItemClick.bind(this);
+		this.onSelectItemClick = this.onSelectItemClick.bind(this);
 	}
 
 	onInputFocus(e) {
 		e.currentTarget.select();
+		this.setState({showList: true});
 	}
 
 	onInputBlur(e) {
-		// console.log('eeeee input blur', e.relatedTarget, this.$select, (this.$select && this.$select.contains(e.relatedTarget)));
-		if (this.$select && this.$select.contains(e.relatedTarget)) return;
+		if (this.selectRef.current && this.selectRef.current.contains(e.relatedTarget)) return;
+		this.setState({showList: false});
 	}
 
 	onInputKeyDown({nativeEvent:e}) {
@@ -26,47 +35,50 @@ export class ComboBox extends React.PureComponent {
 			e.preventDefault();
 			const args = {key: e.key, keyCode: e.keyCode};
 			const evt = new KeyboardEvent(e.type, args);
-			if (this.$select) {
-				this.$select.focus();
-				this.$select.dispatchEvent(evt);
+			if (this.selectRef.current) {
+				this.selectRef.current.focus();
+				this.selectRef.current.dispatchEvent(evt);
 			}
 		}
 	}
 
 	onSelectBlur(e) {
-		// console.log('eeeee select blur', e.relatedTarget, this.$input, (this.$input && this.$input === e.relatedTarget));
-		if (this.$input && this.$input === e.relatedTarget) return;
+		if (this.inputRef.current && this.inputRef.current === e.relatedTarget) return;
 	}
 
 	onSelectKeyDown(e) {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			const idx = +e.currentTarget.value;
-		}
+		if (e.key !== 'Enter') return;
+		e.preventDefault();
+		this.onSelectItemClick(e);
 	}
 
-	onItemClick() {
+	onSelectItemClick(e) {
+		const idx = +e.currentTarget.value;
+		const item = this.props.list[idx];
+		this.props.onSelect(item, this.props.id);
+		this.setState({showList: false});
 	}
 
 	render() {
-		const { items } = this.props
+		const { id, value, list, className, itemFormat, zIndex } = this.props;
+		const { showList } = this.state;
+		const cssList = !list.length ? 'hide' : showList ? '' : 'hide';
 		return (
-		<span className="zPu-suggest">
-			<input ref={el => this.$input = el} className="zPu-suggest-input" autoComplete="off"
-				value={queryInput}
+		<span id={id} className={"combo-box " + className} style={{zIndex}}>
+			<input ref={this.inputRef} className="combo-box-input" autoComplete="off" value={value}
+				onChange={e => this.props.onChange(e.target.value, id)}
 				onFocus={this.onInputFocus}
 				onBlur={this.onInputBlur}
 				onKeyDown={this.onInputKeyDown}
 			/>
 			<br/>
-			<span className="zPu-suggest-list">
-				<select ref={el => this.$select = el} multiple="true" size="5"
-					className="zPu-suggest-select"
+			<span className={["combo-box-list", cssList].join(' ')}>
+				<select ref={this.selectRef} className="combo-box-select" multiple="true" size="10"
 					onBlur={this.onSelectBlur}
 					onKeyDown={this.onSelectKeyDown}>
-				{items.map((item, k) =>
-					<option key={k} value={k} onClick={this.onItemClick}>
-					{item.name} ({item.count})
+				{list.map((item, k) =>
+					<option key={k} value={k} onClick={this.onSelectItemClick}>
+						{itemFormat(item)}
 					</option>
 				)}
 				</select>
@@ -75,3 +87,20 @@ export class ComboBox extends React.PureComponent {
 		)
 	}
 }
+
+ComboBox.propTypes = {
+	value: PropTypes.string.isRequired,
+	list: PropTypes.arrayOf(PropTypes.object),
+	className: PropTypes.string,
+	onChange: PropTypes.func.isRequired, // (value: String, id: props.id)
+	onSelect: PropTypes.func,            // (item: ListItem, id: props.id)
+	itemFormat: PropTypes.func           // (item: ListItem) -> String
+};
+
+ComboBox.defaultProps = {
+	list: [],
+	className: '',
+	zIndex: 1,
+	onSelect: function(){},
+	itemFormat: item => item.toString()
+};

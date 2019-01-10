@@ -1,21 +1,22 @@
-.zPu-suggest {
+.combo-box {
 	position: relative;
 	display: inline-block;
+	width: 100%;
+	box-sizing: border-box;
 }
-.zPu-suggest-list {
+.combo-box-input {
+	width: 100%;
+	box-sizing: border-box;
 }
-.zPu-suggest-input {
-	width: 20em;
-}
-.zPu-suggest-select {
-	width: 20em;
+.combo-box-list {
+	width: 100%;
+	box-sizing: border-box;
 	position: absolute;
 }
-.zPu-suggest-overlay {
-	background: white;
-	z-index: 1;
-	position: absolute;
-	right: 1px;
-	left: 1px;
-	margin-top: 1px;
+.combo-box-list.hide {
+	display: none;
+}
+.combo-box-select {
+	width: 100%;
+	box-sizing: border-box;
 }

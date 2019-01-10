@@ -47,7 +47,6 @@ function buildState(props, state) {
 	const year = dt.getFullYear();
 	const month = dt.getMonth() + 1;
 	return {
-		id: props.id || (state && state.id) || ('dt-picker-' + genId()),
 		show: false,
 		year,
 		month
@@ -107,7 +106,6 @@ export class DatePicker extends React.Component {
 	}
 
 	onDocumentClick(e) {
-		// const $root = document.getElementById(this.state.id);
 		const $root = this.rootRef.current;
 		if ($root && !$root.contains(e.target)) {
 			this.hide();
@@ -119,7 +117,7 @@ export class DatePicker extends React.Component {
 	}
 
 	onClear() {
-		this.props.onChange(null, this.state.id);
+		this.props.onChange(null, this.props.id);
 	}
 
 	move(year, month) {
@@ -130,7 +128,7 @@ export class DatePicker extends React.Component {
 		if (!day) return
 		const dt = new Date(this.state.year, this.state.month - 1, day);
 		this.hide();
-		this.props.onChange(dt, this.state.id);
+		this.props.onChange(dt, this.props.id);
 	}
 
 	chooser(val) {
@@ -205,32 +203,31 @@ export class DatePicker extends React.Component {
 
 
 	render() {
-		const state = this.state;
-		const props = this.props;
-		const id = state.id;
+		const {show, year, month} = this.state;
+		const {id, value, clearable, className, placeholder, zIndex} = this.props;
 
-		const calHide = state.show ? '' : 'hide';
-		const clear = props.clearable && props.value ? h('span', {className: 'date-picker__input-icox', onClick: this.onClear}, '\u2715') : null;
+		const calHide = show ? '' : 'hide';
+		const clear = clearable && value ? h('span', {className: 'date-picker__input-icox', onClick: this.onClear}, '\u2715') : null;
 
-		return h('div', {ref: this.rootRef, id: id, className: 'date-picker ' + props.className},
+		return h('div', {id, ref: this.rootRef, className: 'date-picker ' + className, style: {zIndex}},
 			h('div', {className: 'date-picker__input'},
 				h('input', {className: 'date-picker__input-txt', type: 'text', value: this.formatValue(),
-					placeholder: props.placeholder, onFocus: this.onInputFocus}),
+					placeholder: placeholder, onFocus: this.onInputFocus}),
 				clear
 			),
 			h('div', {className: ['date-picker__panel ', calHide].join(' ') },
 				h('div', {className: 'date-picker__nav'},
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-double-left',
-						onClick: e => this.move(state.year - 1, state.month)}),
+						onClick: e => this.move(year - 1, month)}),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-left',
-						onClick: e => this.move(state.year, state.month - 1)}),
-					h('span', {className: 'date-picker__nav-mnyr'}, MONTH_NAMES[state.month], ' ', state.year),
+						onClick: e => this.move(year, month - 1)}),
+					h('span', {className: 'date-picker__nav-mnyr'}, MONTH_NAMES[month], ' ', year),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-right',
-						onClick: e => this.move(state.year, state.month + 1)}),
+						onClick: e => this.move(year, month + 1)}),
 					h('span', {className: 'date-picker__nav-ico fa fa-angle-double-right',
-						onClick: e => this.move(state.year + 1, state.month)})
+						onClick: e => this.move(year + 1, month)})
 				),
-				this.renderTable(state.year, state.month)
+				this.renderTable(year, month)
 			)
 		);
 	}
@@ -241,6 +238,7 @@ DatePicker.defaultProps = {
 	className: '',
 	displayFormat: 'DD-MM-YYYY', // options: YYYY=FullYear, MMM=MonthName, MM=Month, DD=Day
 	placeholder: 'Select...',
+	zIndex: 1,
 	clearable: true,
-	onChange: function(){}
+	onChange: function(){}       // (value, id)
 };

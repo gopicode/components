@@ -7,7 +7,10 @@ module.exports = {
     input: 'src/main.js',
     output: {
       file: 'dist/main.js',
-      format: 'iife'
+      format: 'iife',
+      globals: {
+      	'prop-types' : 'PropTypes'
+      }
     },
     plugins: [
         postcss({
@@ -16,5 +19,6 @@ module.exports = {
         	use: ['less']
         }),
         babel(babelConfig)
-    ]
+    ],
+    external: ['prop-types']
 }
