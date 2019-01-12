@@ -7,6 +7,9 @@ import {ImageCrop} from './ImageCrop.jsx'
 import cities from './cities.js';
 import countries from './countries.js';
 
+// const PHOTO = '/sample1.jpg';
+const PHOTO = 'http://jcrop-cdn.tapmodo.com/v0.9.10/demos/demo_files/pool.jpg';
+
 class App extends React.Component {
 	constructor(props) {
 		super(props);
@@ -50,7 +53,7 @@ class App extends React.Component {
 	render() {
 		return h('div', null,
 			h('header', {className: 'header'}, 'This is the header'),
-			h('div', {className: 'photo'}, h(ImageCrop, {id: 'photo', src: '/sample1.jpg',
+			h('div', {className: 'photo'}, h(ImageCrop, {id: 'photo', src: PHOTO,
 				onChange: val => this.setState({photo: val})})),
 			h('form', null,
 				h('table', null,
