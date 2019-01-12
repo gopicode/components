@@ -2,6 +2,7 @@ import {h} from './h.js'
 import {Button} from './Button.js'
 import {DatePicker} from './DatePicker.js'
 import {ComboBox} from './ComboBox.jsx'
+import {ImageCrop} from './ImageCrop.jsx'
 
 import cities from './cities.js';
 import countries from './countries.js';
@@ -49,6 +50,8 @@ class App extends React.Component {
 	render() {
 		return h('div', null,
 			h('header', {className: 'header'}, 'This is the header'),
+			h('div', {className: 'photo'}, h(ImageCrop, {id: 'photo', src: '/sample1.jpg',
+				onChange: val => this.setState({photo: val})})),
 			h('form', null,
 				h('table', null,
 					h('tr', null,
