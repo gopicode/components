@@ -2,7 +2,8 @@ import {h} from './h.js'
 import {Button} from './Button.js'
 import {DatePicker} from './DatePicker.js'
 import {ComboBox} from './ComboBox.jsx'
-import {ImageCrop} from './ImageCrop.jsx'
+// import {ImageCrop} from './ImageCrop.jsx'
+import {ImageCrop} from './ImageCropRaw.jsx'
 
 import cities from './cities.js';
 import countries from './countries.js';

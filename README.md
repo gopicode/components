@@ -26,3 +26,7 @@ Open another terminal tab and run below. This will start the rollup in watch mod
 ```bash
 npm run dev
 ```
+
+# Links
+
+- [React Doc](https://reactjs.org/docs/react-component.html)
