@@ -1,0 +1,23 @@
+.json-edit {
+}
+
+.json-object {
+	padding: 0 0 0 20px;
+}
+
+.json-line {
+	font-family: monospace;
+}
+
+.json-key {
+	padding-right: 10px;
+}
+
+.json-btn-del,
+.json-btn-add {
+	visibility: hidden;
+}
+.json-val-wrap:hover .json-btn-del,
+.json-val-wrap:hover .json-btn-add {
+	visibility: visible;
+}

@@ -5,6 +5,7 @@ const http = require('http');
 const MIMES = {
 	css: 'text/css',
 	js: 'application/javascript',
+	json: 'application/json',
 	gif: 'image/gif',
 	png: 'image/png',
 	jpg: 'image/jpeg',
@@ -21,7 +22,7 @@ function handler(req, res) {
 		res.write(content);
 	}
 	else {
-		const matches = req.url.match(/\.(js|css|gif|png|jpg)$/);
+		const matches = req.url.match(/\.(js|css|gif|png|jpg|json)$/);
 		if (!matches) {
 			res.writeHead(404);
 			res.write('Page not found');
@@ -55,5 +56,13 @@ server.on('error', function(err) {
 });
 server.listen(port, function (err) {
 	if (err) return console.error(err);
-	console.log('[server] is running on port %d', port)
+	console.log('[server] is running on port:%d pid:%d', port, process.pid)
 });
+
+process.on('SIGTERM', function() {
+	console.log('SIGTERM');
+	server.close(() => {
+		console.log('[server] closed');
+		process.exit(0);
+	})
+})

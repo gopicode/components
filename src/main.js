@@ -4,12 +4,14 @@ import {DatePicker} from './DatePicker.js'
 import {ComboBox} from './ComboBox.jsx'
 // import {ImageCrop} from './ImageCrop.jsx'
 import {ImageCrop} from './ImageCropRaw.jsx'
+import {JsonEdit} from './JsonEdit.jsx'
 
 import cities from './cities.js';
 import countries from './countries.js';
+import products from './products.json';
 
-// const PHOTO = '/sample1.jpg';
-const PHOTO = 'http://jcrop-cdn.tapmodo.com/v0.9.10/demos/demo_files/pool.jpg';
+const PHOTO = '/sample1.jpg';
+// const PHOTO = 'http://jcrop-cdn.tapmodo.com/v0.9.10/demos/demo_files/pool.jpg';
 
 class App extends React.Component {
 	constructor(props) {
@@ -27,6 +29,7 @@ class App extends React.Component {
 		this.onCitySelect = this.onCitySelect.bind(this);
 		this.onCountryChange = this.onCountryChange.bind(this);
 		this.onCountrySelect = this.onCountrySelect.bind(this);
+		this.onProductsChange = this.onProductsChange.bind(this);
 	}
 
 	onChange(value, id) {
@@ -51,9 +54,16 @@ class App extends React.Component {
 		this.setState({country: {...this.state.country, item, value: item.name}});
 	}
 
+	onProductsChange(value, id) {
+		// this.setState({[id]: value});
+		console.log('onProductsChange', value);
+	}
+
 	render() {
 		return h('div', null,
 			h('header', {className: 'header'}, 'This is the header'),
+			h(JsonEdit, {value: products, onChange: this.onProductsChange}),
+			/*
 			h('div', {className: 'photo'}, h(ImageCrop, {id: 'photo', src: PHOTO,
 				onChange: val => this.setState({photo: val})})),
 			h('form', null,
@@ -90,6 +100,7 @@ class App extends React.Component {
 					)
 				)
 			),
+			*/
 			h('footer', {className: 'footer'}, 'This is the footer')
 		);
 	}

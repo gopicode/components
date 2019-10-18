@@ -1,5 +1,6 @@
 import postcss from 'rollup-plugin-postcss';
 import babel from 'rollup-plugin-babel';
+import json from 'rollup-plugin-json';
 
 const babelConfig = require('./.babelrc.js');
 
@@ -18,7 +19,10 @@ module.exports = {
         	extract: true,
         	use: ['less']
         }),
-        babel(babelConfig)
+        babel(babelConfig),
+        json({
+        	exclude: 'node_modules/**'
+        })
     ],
     external: ['prop-types']
 }
