@@ -7,6 +7,7 @@ const TYPE_OBJECT = 'object';
 const TYPE_BOOLEAN = 'boolean';
 const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
+const TYPE_MARKER = '__mark';
 
 const MARKS = {
 	"array": {beg: "[", end: "]"},
@@ -26,6 +27,8 @@ function typecast(val) {
 	if (/^false$/i.test(val)) return false;
 	if (/^\d+$/.test(val)) return Number(val);
 	if (/^\d+\.\d+$/.test(val)) return Number(val);
+	if (/^\{\}$/i.test(val)) return {};
+	if (/^\[\]$/i.test(val)) return [];
 	return String(val);
 }
 
@@ -40,8 +43,7 @@ export class JsonEdit extends React.PureComponent {
 		this.state = {
 			value: props.value,
 			action: '',
-			jpath: '',
-			jtype: ''
+			jpath: ''
 		};
 
 		this.onCancel = this.onCancel.bind(this);
@@ -57,18 +59,24 @@ export class JsonEdit extends React.PureComponent {
 		this.setState({action: 'edit', jpath})
 	}
 
-	onAdd(jpath, jtype) {
-		console.log('onAdd', jpath, jtype)
-		this.setState({action: ''})
-		// this.setState({action: 'add', jpath, jtype})
+	onAdd(jpath) {
+		console.log('onAdd', jpath)
+		this.setState({action: 'add', jpath})
 	}
 
 	onCreate(jpath, key, val) {
-		console.log('onCreate', jpath, jtype)
-		this.setState({action: 'create', jpath, jtype})
+		console.log('onCreate', jpath, key, val);
+		let parts = jpath.split('.')
+		let obj = {...this.state.value}
+		parts.forEach(part => {
+			obj = obj[part]
+		})
+		obj[key] = typecast(val);
+		this.setState({action: ''})
 	}
 
-	onUpdate(jpath, value) {
+	onUpdate(jpath, key2, val) {
+		key2 = key2.trim();
 		let parts = jpath.split('.')
 		let key = parts.pop()
 		let newValue = {...this.state.value}
@@ -76,8 +84,13 @@ export class JsonEdit extends React.PureComponent {
 		parts.forEach(part => {
 			obj = obj[part]
 		})
-		obj[key] = typecast(value);
-		console.log('onUpdate', jpath, value, parts, obj, key);
+		if (key2 === key) {
+			obj[key] = typecast(val);
+		} else {
+			obj[key2] = typecast(val);
+			delete obj[key];
+		}
+		console.log('onUpdate', jpath, parts, obj, key, val);
 		this.setState({value: newValue, action: ''})
 	}
 
@@ -89,8 +102,13 @@ export class JsonEdit extends React.PureComponent {
 		parts.forEach(part => {
 			obj = obj[part]
 		})
-		delete obj[key];
-		console.log('onDelete', jpath, parts, obj, key)
+		if (getType(obj) === TYPE_ARRAY) {
+			obj.splice(key, 1);
+			console.log('onDelete array', jpath, parts, obj, key)
+		} else {
+			delete obj[key];
+			console.log('onDelete object', jpath, parts, obj, key)
+		}
 		this.setState({value: newValue, action: ''})
 	}
 
@@ -102,25 +120,43 @@ export class JsonEdit extends React.PureComponent {
 	draw(elem, opts = {}) {
 		const keys = Object.keys(elem);
 		const items = [];
+		const parentType = opts.type;
+
 		for (let i = 0; i < keys.length; i += 1) {
 			const key = keys[i];
 			const val = elem[key];
-			const keyStr = opts.type === TYPE_ARRAY ? '' : `"${key}"`;
 			const comma = (keys.length > 1 && i + 1 < keys.length);
+			const jpath = joinPath(opts.jpath, key);
+			const type = Array.isArray(val) ? TYPE_ARRAY : TYPE_OBJECT;
+
 			if (val !== null && typeof val === 'object') {
-				const type = Array.isArray(val) ? TYPE_ARRAY : TYPE_OBJECT;
 				const mark = MARKS[type];
-				items.push(this.drawItem(keyStr, mark.beg, {index: i + '-beg'}));
-				items.push(this.draw(val, {type, jpath: joinPath(opts.jpath, key)}));
+				items.push(this.drawItem(key, mark.beg, {type, index: i + '-beg', parentType}));
+				items.push(this.draw(val, {type, jpath}));
+				if (this.state.action === 'add' && this.state.jpath === jpath) {
+					items.push(
+					<form className="json-val" onSubmit={e => {
+						e.preventDefault();
+						const form = e.currentTarget;
+						const keyNew = type === TYPE_OBJECT ? form.elements['key'].value : val.length;
+						const valNew = form.elements['val'].value;
+						this.onCreate(jpath, keyNew, valNew);
+					}}>
+						{type === TYPE_OBJECT && <input type="text" name="key" placeholder="key" autoFocus={true}/>}
+						<input type="text" name="val" placeholder="value"  autoFocus={type === TYPE_ARRAY}/>
+						<button type="submit">create</button>
+						<button onClick={this.onCancel} type="button">cancel</button>
+					</form>
+					)
+				}
 				items.push(this.drawItem(null, mark.end,
-					{type, jpath: opts.jpath, index: i + '-end', comma, deleteable: true, addable: true}
+					{type, jpath: jpath, index: i + '-end', comma, deleteable: true, addable: true, parentType}
 				));
 
 			} else {
-				const jpath = joinPath(opts.jpath, key)
 				const editable = this.state.action === 'edit' && jpath === this.state.jpath
-				items.push(this.drawItem(keyStr, val,
-					{index: i, type: getType(val), jpath, comma, deleteable: true, editable}));
+				items.push(this.drawItem(key, val,
+					{index: i, type: getType(val), jpath, comma, deleteable: true, editable, parentType}));
 			}
 		}
 		return (
@@ -131,34 +167,57 @@ export class JsonEdit extends React.PureComponent {
 	}
 
 	drawItem(key, val, opts = {}) {
-		const {comma, index, type, deleteable, addable, editable} = opts;
+		const {comma, index, jpath, type, deleteable, addable, editable, parentType} = opts;
+		const keyStr = (key === null || parentType === TYPE_ARRAY) ? '' : `"${key}"`;
 		const valStr = type === TYPE_STRING ? `"${val}"` : String(val);
 
-		let valMarkup;
+		let keyMarkup, valMarkup, btnMarkup;
 		if (editable) {
+			keyMarkup = keyStr && (
+			<span className="json-key">
+				<input type="text" name="key" defaultValue={key} autoFocus={true} onFocus={e => e.target.select()} />
+			</span>
+			)
 			valMarkup = (
 			<span className="json-val">
-				<input type="text" defaultValue={val} autoFocus={true}
-					onKeyPress={e => e.key == "Enter" && this.onUpdate(opts.jpath, e.target.value)}/>
-				}
-				<button onClick={this.onCancel}>cancel</button>
+				<input type="text" name="val" defaultValue={val} autoFocus={true} onFocus={e => e.target.select()} />
+			</span>
+			)
+			btnMarkup = (
+			<span>
+				<button type="submit">update</button>
+				<button type="button" onClick={this.onCancel}>cancel</button>
 			</span>
 			)
 		} else {
+			keyMarkup = keyStr && (
+				<span className="json-key" onClick={e => this.onEdit(jpath)}>{keyStr + ':'}</span>
+			)
 			valMarkup = (
-			<span className="json-val-wrap">
-				<span className="json-val" onClick={e => this.onEdit(opts.jpath)}>{valStr}{comma && ","}</span>
-				{addable && <button className="json-btn-add" onClick={e => this.onAdd(opts.jpath, type)}>add</button>}
-				{deleteable && <button className="json-btn-del" onClick={e => this.onDelete(opts.jpath)}>delete</button>}
+				<span className="json-val" onClick={e => this.onEdit(jpath)}>{valStr}{comma && ","}</span>
+			)
+			btnMarkup = (
+			<span className="json-btns">
+				{addable && <button className="json-btn-add" onClick={e => this.onAdd(jpath)}>+</button>}
+				{deleteable && <button className="json-btn-del" onClick={e => this.onDelete(jpath)}>-</button>}
 			</span>
 			)
 		}
 
 		return (
 		<div key={index} className="json-line">
-			{key && <span className="json-key">{key + ':'}</span>}
-			{valMarkup}
-			{/*path.length > 0 && <span>[{path.join('.')}]</span>*/}
+			<form onSubmit={e => {
+				e.preventDefault();
+				const form = e.currentTarget;
+				const key = form.elements["key"] ? form.elements["key"].value : '';
+				const val = form.elements["val"].value;
+				this.onUpdate(jpath, key, val);
+			}}>
+				{keyMarkup}
+				{valMarkup}
+				{btnMarkup}
+				{/*<span style={{color:"#777"}}>{jpath}</span>*/}
+			</form>
 		</div>
 		)
 	}

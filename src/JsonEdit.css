@@ -17,7 +17,7 @@
 .json-btn-add {
 	visibility: hidden;
 }
-.json-val-wrap:hover .json-btn-del,
-.json-val-wrap:hover .json-btn-add {
+.json-line:hover .json-btn-del,
+.json-line:hover .json-btn-add {
 	visibility: visible;
 }
