@@ -118,20 +118,21 @@ export class JsonEdit extends React.PureComponent {
 	}
 
 	draw(elem, opts = {}) {
+		const {type: parentType, jpath: parentPath} = opts;
 		const keys = Object.keys(elem);
 		const items = [];
-		const parentType = opts.type;
 
 		for (let i = 0; i < keys.length; i += 1) {
 			const key = keys[i];
 			const val = elem[key];
 			const comma = (keys.length > 1 && i + 1 < keys.length);
-			const jpath = joinPath(opts.jpath, key);
-			const type = Array.isArray(val) ? TYPE_ARRAY : TYPE_OBJECT;
+			const jpath = joinPath(parentPath, key);
+			const type = getType(val);
 
-			if (val !== null && typeof val === 'object') {
+			if (type === TYPE_ARRAY || type === TYPE_OBJECT) {
 				const mark = MARKS[type];
-				items.push(this.drawItem(key, mark.beg, {type, index: i + '-beg', parentType}));
+				const collapseable = (type === TYPE_ARRAY && val.length >= 1) || Object.keys(val).length >= 1;
+				items.push(this.drawItem(key, mark.beg, {type, index: i + '-beg', parentType, isMarkBegin: true, collapseable}));
 				items.push(this.draw(val, {type, jpath}));
 				if (this.state.action === 'add' && this.state.jpath === jpath) {
 					items.push(
@@ -150,13 +151,13 @@ export class JsonEdit extends React.PureComponent {
 					)
 				}
 				items.push(this.drawItem(null, mark.end,
-					{type, jpath: jpath, index: i + '-end', comma, deleteable: true, addable: true, parentType}
+					{type, jpath, index: i + '-end', comma, deleteable: true, addable: true, parentType}
 				));
 
 			} else {
 				const editable = this.state.action === 'edit' && jpath === this.state.jpath
 				items.push(this.drawItem(key, val,
-					{index: i, type: getType(val), jpath, comma, deleteable: true, editable, parentType}));
+					{index: i, type, jpath, comma, deleteable: true, editable, parentType}));
 			}
 		}
 		return (
@@ -167,12 +168,14 @@ export class JsonEdit extends React.PureComponent {
 	}
 
 	drawItem(key, val, opts = {}) {
-		const {comma, index, jpath, type, deleteable, addable, editable, parentType} = opts;
+		const {comma, index, jpath, type, deleteable, addable, editable, parentType, isMarkBegin, collapseable} = opts;
 		const keyStr = (key === null || parentType === TYPE_ARRAY) ? '' : `"${key}"`;
 		const valStr = type === TYPE_STRING ? `"${val}"` : String(val);
 
-		let keyMarkup, valMarkup, btnMarkup;
+		let Tag = 'div';
+		let keyMarkup, valMarkup, btnMarkup, arrowMarkup;
 		if (editable) {
+			Tag = 'form'
 			keyMarkup = keyStr && (
 			<span className="json-key">
 				<input type="text" name="key" defaultValue={key} autoFocus={true} onFocus={e => e.target.select()} />
@@ -202,11 +205,24 @@ export class JsonEdit extends React.PureComponent {
 				{deleteable && <button className="json-btn-del" onClick={e => this.onDelete(jpath)}>-</button>}
 			</span>
 			)
+			if (collapseable && isMarkBegin) {
+				arrowMarkup = (
+					<button type="button" onClick={e => {
+						const btn = e.currentTarget;
+						const $line = btn.closest('.json-line');
+						if (!$line) return;
+						let $node = $line.nextElementSibling;
+						if (!$node.matches('.json-object')) return;
+						$node.classList.toggle('is-hidden');
+						btn.innerHTML = $node.classList.contains('is-hidden') ? '&rarr;' : '&darr;'
+					}}>&darr;</button>
+				)
+			}
 		}
 
 		return (
 		<div key={index} className="json-line">
-			<form onSubmit={e => {
+			<Tag onSubmit={e => {
 				e.preventDefault();
 				const form = e.currentTarget;
 				const key = form.elements["key"] ? form.elements["key"].value : '';
@@ -216,21 +232,27 @@ export class JsonEdit extends React.PureComponent {
 				{keyMarkup}
 				{valMarkup}
 				{btnMarkup}
+				{arrowMarkup}
 				{/*<span style={{color:"#777"}}>{jpath}</span>*/}
-			</form>
+			</Tag>
 		</div>
 		)
 	}
 
 	render() {
 		const val = this.state.value;
-		const type = Array.isArray(val) ? TYPE_ARRAY : TYPE_OBJECT;
+		const type = getType(val); //Array.isArray(val) ? TYPE_ARRAY : TYPE_OBJECT;
 		const mark = MARKS[type];
 		return (
 		<div className={"json-edit"}>
-			{this.drawItem(null, mark.beg, {index: '0-beg'})}
-			{this.draw(val, {type, jpath:''})}
-			{this.drawItem(null, mark.end, {type, index: '0-end'})}
+			<div>
+				{this.drawItem(null, mark.beg, {index: '0-beg'})}
+				{this.draw(val, {type, jpath:''})}
+				{this.drawItem(null, mark.end, {type, index: '0-end'})}
+			</div>
+			<div>
+				<button type="button" onClick={e => this.props.onChange(this.state.value)}>Save</button>
+			</div>
 		</div>
 		)
 	}

@@ -4,6 +4,9 @@
 .json-object {
 	padding: 0 0 0 20px;
 }
+.json-object.is-hidden {
+	display: none;
+}
 
 .json-line {
 	font-family: monospace;
