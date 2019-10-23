@@ -60,13 +60,18 @@ class App extends React.Component {
 	}
 
 	render() {
-		return h('div', null,
-			h('header', {className: 'header'}, 'This is the header'),
-			h(JsonEdit, {value: products, onChange: this.onProductsChange}),
-			/*
-			h('div', {className: 'photo'}, h(ImageCrop, {id: 'photo', src: PHOTO,
-				onChange: val => this.setState({photo: val})})),
-			h('form', null,
+		let content;
+		switch (location.pathname) {
+			case "/image-cropper":
+				content = h('div', {className: 'photo'},
+					h(ImageCrop, {id: 'photo', src: PHOTO, onChange: val => this.setState({photo: val})})
+				)
+				break;
+			case "/json-editor":
+				content = h(JsonEdit, {value: products, onChange: this.onProductsChange})
+				break;
+			default:
+				content = h('form', null,
 				h('table', null,
 					h('tr', null,
 						h('td', null, 'From'),
@@ -99,8 +104,11 @@ class App extends React.Component {
 						h('td', null, h(Button, {type: 'button'}, 'Send'))
 					)
 				)
-			),
-			*/
+			)
+		}
+		return h('div', null,
+			h('header', {className: 'header'}, 'This is the header'),
+			content,
 			h('footer', {className: 'footer'}, 'This is the footer')
 		);
 	}

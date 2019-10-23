@@ -14,20 +14,8 @@ const MIMES = {
 function handler(req, res) {
 	// console.log('req', req.url, req.headers);
 	const accept = req.headers.accept;
-	if (req.url === '/') {
-		const content = fs.readFileSync(path.join(__dirname, 'src/index.html'));
-		res.writeHead(200, {
-			'Content-Type': 'text/html; charset=utf-8'
-		});
-		res.write(content);
-	}
-	else {
-		const matches = req.url.match(/\.(js|css|gif|png|jpg|json)$/);
-		if (!matches) {
-			res.writeHead(404);
-			res.write('Page not found');
-			return;
-		}
+	const matches = req.url.match(/\.(js|css|gif|png|jpg|json)$/);
+	if (matches) {
 		const ext = matches[1];
 		const path1 = __dirname + '/dist' + req.url;
 		const path2 = __dirname + '/src' + req.url;
@@ -42,6 +30,13 @@ function handler(req, res) {
 		const contentType = MIMES[ext];
 		res.writeHead(200, {
 			'Content-Type': contentType
+		});
+		res.write(content);
+	}
+	else {
+		const content = fs.readFileSync(path.join(__dirname, 'src/index.html'));
+		res.writeHead(200, {
+			'Content-Type': 'text/html; charset=utf-8'
 		});
 		res.write(content);
 	}

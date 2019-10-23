@@ -207,14 +207,16 @@ export class JsonEdit extends React.PureComponent {
 			)
 			if (collapseable && isMarkBegin) {
 				arrowMarkup = (
-					<button type="button" onClick={e => {
+					<button type="button" className="json-btn-arrow" onClick={e => {
 						const btn = e.currentTarget;
 						const $line = btn.closest('.json-line');
 						if (!$line) return;
 						let $node = $line.nextElementSibling;
 						if (!$node.matches('.json-object')) return;
 						$node.classList.toggle('is-hidden');
-						btn.innerHTML = $node.classList.contains('is-hidden') ? '&rarr;' : '&darr;'
+						const isHidden = $node.classList.contains('is-hidden');
+						btn.innerHTML = isHidden ? '&rarr;' : '&darr;'
+						isHidden ? btn.classList.add('show') : btn.classList.remove('show');
 					}}>&darr;</button>
 				)
 			}
