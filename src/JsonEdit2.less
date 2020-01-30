@@ -1,0 +1,52 @@
+.json-edit {
+}
+.json-edit .is-hidden {
+	display: none;
+}
+
+.json-kids {
+	padding: 0 0 0 20px;
+}
+
+.json-array,
+.json-object {
+}
+.json-line {
+	font-family: monospace;
+}
+.json-name {
+	padding-right: 10px;
+}
+.json-val {
+}
+
+
+
+.json-line {
+	& input { display: none; }
+	& button { display: none; }
+}
+.json-line.edit {
+	& .json-name {display: none;}
+	& .json-val {display: none;}
+	& input { display: initial; }
+	& button { display: initial; }
+}
+
+
+
+.json-btn-arrow,
+.json-btn-del,
+.json-btn-add {
+	visibility: hidden;
+}
+.json-line:hover .json-btn-arrow,
+.json-line:hover .json-btn-del,
+.json-line:hover .json-btn-add {
+	visibility: visible;
+}
+
+.json-btn-arrow.show,
+.json-line:hover .json-btn-arrow.show {
+	visibility: visible;
+}

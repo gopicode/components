@@ -4,7 +4,7 @@ import {DatePicker} from './DatePicker.js'
 import {ComboBox} from './ComboBox.jsx'
 // import {ImageCrop} from './ImageCrop.jsx'
 import {ImageCrop} from './ImageCropRaw.jsx'
-import {JsonEdit} from './JsonEdit.jsx'
+import {JsonEdit} from './JsonEdit2.jsx'
 
 import cities from './cities.js';
 import countries from './countries.js';
