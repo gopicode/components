@@ -1,4 +1,6 @@
 .json-edit {
+	max-width: 800px;
+	border: 1px solid #eee;
 }
 .json-edit .is-hidden {
 	display: none;
@@ -23,18 +25,28 @@
 
 
 .json-line {
-	& input { display: none; }
-	& button { display: none; }
+	& .txt { display: none; }
+	& .btn {
+		margin-left: 10px;
+		border: 0;
+		background: transparent;
+		padding: 0;
+		cursor: pointer;
+		display: none;
+	}
 }
 .json-line.edit {
 	& .json-name {display: none;}
 	& .json-val {display: none;}
-	& input { display: initial; }
-	& button { display: initial; }
+	& .txt { display: initial; }
+	& .btn { display: initial; }
+}
+.json-line:hover {
+	& .btn-remove { display: initial; }
 }
 
 
-
+/*
 .json-btn-arrow,
 .json-btn-del,
 .json-btn-add {
@@ -50,3 +62,4 @@
 .json-line:hover .json-btn-arrow.show {
 	visibility: visible;
 }
+*/
