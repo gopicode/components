@@ -1,4 +1,4 @@
-import './JsonEdit2.less';
+import './JsonEditRecur.less';
 import PropTypes from 'prop-types';
 
 const TYPE_NULL = 'null';
