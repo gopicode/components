@@ -37,48 +37,89 @@ function typecast(val) {
 	return String(val);
 }
 
-function editLine(e) {
-	const $el = e.currentTarget;
-	const $line = $el.closest('.json-line');
-	$line.classList.add('edit');
-	const $form = $el.closest('form');
-	$form.elements[0].focus();
-}
-
-function resetLine(e) {
-	const $el = e.currentTarget;
-	const $line = $el.closest('.json-line');
-	$line.classList.remove('edit');
-}
-
-function onKeyInput(e) {
-	// console.log('key', e.key);
-	if (e.key == "Escape") resetLine(e);
-}
-
 
 class JsonLine extends React.PureComponent {
 	constructor(props) {
 		super(props);
+		this.reset = this.reset.bind(this);
+		this.add = this.add.bind(this);
+		this.edit = this.edit.bind(this);
+		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
 		this.remove = this.remove.bind(this);
+		this.onKeyInput = this.onKeyInput.bind(this);
+	}
+
+	onKeyInput(e) {
+		// console.log('key', e.key);
+		if (e.key == "Escape") this.reset(e);
+	}
+
+	reset(e, $line) {
+		if (!$line) {
+			$line = e.currentTarget.closest('.json-line');
+		}
+		const $struct = $line.closest('.json-struct');
+		const $item = $line.querySelector('.json-item');
+		const forms = Array.from($line.querySelectorAll('.frm'));
+		$struct.classList.remove('wip');
+		$item.classList.remove('hide');
+		forms.forEach($form => $form.classList.add('hide'));
+	}
+
+	add(e) {
+		const $el = e.currentTarget;
+		const $line = $el.closest('.json-line');
+		const $struct = $line.closest('.json-struct');
+		const $form = $line.querySelector('.frm-create');
+		$struct.classList.add('wip');
+		$form.classList.remove('hide');
+		$form.elements[0].focus();
+	}
+
+	edit(e) {
+		const $el = e.currentTarget;
+		const $line = $el.closest('.json-line');
+		const $struct = $line.closest('.json-struct');
+		const $item = $line.querySelector('.json-item');
+		const $form = $line.querySelector('.frm-update');
+		$struct.classList.add('wip');
+		$item.classList.add('hide');
+		$form.classList.remove('hide');
+		$form.elements[0].focus();
+	}
+
+	create(e) {
+		e.preventDefault();
+		const $form = e.currentTarget;
+		const $line = $form.closest('.json-line');
+		this.reset(null, $line);
+
+		const $inputValue = $form.elements.value;
+		const newValue = typecast($inputValue.value.trim());
+
+		const $inputName = $form.elements.name;
+		const newName = $inputName ? $inputName.value.trim() : null;
+
+		const trace = ['create', newValue];
+		this.props.create(newName, newValue, trace);
 	}
 
 	update(e) {
 		e.preventDefault();
 		const $form = e.currentTarget;
 		const $line = $form.closest('.json-line');
-		$line.classList.remove('edit');
+		this.reset(null, $line);
 
 		const $inputValue = $form.elements.value;
-		const newValue = typecast($inputValue.value.trim());
+		const newValue = $inputValue ? typecast($inputValue.value.trim()) : null;
 
-		// const $inputName = $form.elements.name;
-		// const newName = $inputName ? $inputName.value.trim() : '';
+		const $inputName = $form.elements.name;
+		const newName = $inputName ? $inputName.value.trim() : null;
 
 		const {name, index} = this.props;
-		const trace = ['update'];
-		this.props.update(name || index, newValue, trace);
+		const trace = ['update', newValue];
+		this.props.update(newName || index, newValue, name || index, trace);
 	}
 
 	remove(e) {
@@ -89,23 +130,35 @@ class JsonLine extends React.PureComponent {
 	}
 
 	render() {
-		const {name, val, comma, isNull, update, remove} = this.props;
+		const {name, val, comma, isNull, ctype, create, update, remove} = this.props;
 		const quote = getType(val) === TYPE_STRING ? MARKS.quote : '';
 		return (
 			<div className="json-line">
-				<form onSubmit={this.update} onKeyDown={onKeyInput}>
+				{create && <form className="frm frm-create hide" onSubmit={this.create} onKeyDown={this.onKeyInput}>
+					{ctype == TYPE_OBJECT && <input className="txt" type="text" name="name" />}
+					<input className="txt" type="text" name="value" />
+					<button className="btn btn-create" type="submit">create</button>
+					<button className="btn btn-cancel" type="button" onClick={this.reset}>cancel</button>
+				</form>}
+				<div className="json-item">
 					{name && <span>
-						<span className="json-name" onClick={editLine}>{name}</span>
-						{/*<input className="txt" type="text" name="name" defaultValue={name} />*/}
+						<span className="json-name" onClick={this.edit}>{name}</span>
 						{MARKS.colon}
 					</span>}
-					<span className="json-val" onClick={editLine}>{isNull ? "null" : (quote + val + quote)}</span>
-					<input className="txt" type="text" name="value" defaultValue={val} autoFocus={true} />
+					<span className="json-val" onClick={this.edit}>{isNull ? "null" : (quote + val + quote)}</span>
+					{remove && <button className="btn btn-hover btn-del" onClick={this.remove}>remove</button>}
+					{create && <button className="btn btn-hover btn-add" onClick={this.add}>add</button>}
+				</div>
+				{update && <form className="frm frm-update hide" onSubmit={this.update} onKeyDown={this.onKeyInput}>
+					{name && <span>
+						<input className="txt" type="text" name="name" defaultValue={name} />
+						{MARKS.colon}
+					</span>}
+					<input className="txt" type="text" name="value" defaultValue={val} />
 					{comma && <span className="json-comma">{MARKS.comma}</span>}
-					{update && <button className="btn btn-update" type="submit">update</button>}
-					{remove && <button className="btn btn-remove" onClick={this.remove}>remove</button>}
-					<button className="btn btn-cancel" onClick={resetLine}>cancel</button>
-				</form>
+					<button className="btn btn-update" type="submit">update</button>
+					<button className="btn btn-cancel" type="button" onClick={this.reset}>cancel</button>
+				</form>}
 			</div>
 		)
 	}
@@ -114,17 +167,39 @@ class JsonLine extends React.PureComponent {
 class JsonObject extends React.PureComponent {
 	constructor(props) {
 		super(props);
+		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
+		this.updateKey = this.updateKey.bind(this);
 		this.remove = this.remove.bind(this);
 	}
 
-	update(k, v, trace = []) {
+	create(k, v, trace = []) {
 		// console.log('update JsonObject', k, v);
 		trace.push(k);
 		const {name, index, val:obj, update: pUpdate} = this.props;
 		const newValue = {...obj};
 		newValue[k] = v;
-		pUpdate(name || index, newValue, trace);
+		pUpdate(name || index, newValue, null, trace);
+	}
+
+	update(k, v, p, trace = []) {
+		console.log('update JsonObject', k, v, p);
+		trace.push(k);
+		const {name, index, val:obj, update: pUpdate} = this.props;
+		const newValue = {...obj};
+		newValue[k] = v;
+		// if the key changed, remove it from the clone
+		if (p && p != k) {
+			delete newValue[p]
+		}
+		pUpdate(name || index, newValue, null, trace);
+	}
+
+	updateKey(k, v, p, trace = []) {
+		console.log('updateKey JsonObject', k, v, p);
+		trace.push(k);
+		const {name, index, val, update: pUpdate} = this.props;
+		pUpdate(k, val, name || index, trace);
 	}
 
 	remove(k, trace = []) {
@@ -133,7 +208,7 @@ class JsonObject extends React.PureComponent {
 		const {name, index, val:obj, update: pUpdate} = this.props;
 		const newValue = {...obj};
 		delete newValue[k];
-		pUpdate(name || index, newValue, trace);
+		pUpdate(name || index, newValue, null, trace);
 	}
 
 	render() {
@@ -152,10 +227,10 @@ class JsonObject extends React.PureComponent {
 					isNull={v === null} update={this.update} remove={this.remove} />;
 		});
 		return (
-			<div className="json-object">
-				<JsonLine name={name} index={index} val={MARKS.object.beg} remove={pRemove} />
+			<div className="json-struct object">
+				<JsonLine name={name} index={index} val={MARKS.object.beg} update={this.updateKey} remove={pRemove} />
 				<div className="json-kids">{kids}</div>
-				<JsonLine val={MARKS.object.end} comma={comma} />
+				<JsonLine val={MARKS.object.end} comma={comma} create={this.create} ctype={TYPE_OBJECT} />
 			</div>
 		)
 	}
@@ -164,17 +239,35 @@ class JsonObject extends React.PureComponent {
 class JsonArray extends React.PureComponent {
 	constructor(props) {
 		super(props);
+		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
+		this.updateKey = this.updateKey.bind(this);
 		this.remove = this.remove.bind(this);
 	}
 
-	update(k, v, trace = []) {
+	create(k, v, trace = []) {
 		// console.log('update JsonArray', k, v);
 		trace.push(k);
 		const {name, index, val:arr, update: pUpdate} = this.props;
 		const newValue = [...arr];
+		newValue.push(v);
+		pUpdate(name || index, newValue, null, trace);
+	}
+
+	update(k, v, p, trace = []) {
+		console.log('update JsonArray', k, v, p);
+		trace.push(k);
+		const {name, index, val:arr, update: pUpdate} = this.props;
+		const newValue = [...arr];
 		newValue[k] = v;
-		pUpdate(name || index, newValue, trace);
+		pUpdate(name || index, newValue, null, trace);
+	}
+
+	updateKey(k, v, p, trace = []) {
+		console.log('updateKey JsonArray', k, v, p);
+		trace.push(k);
+		const {name, index, val, update: pUpdate} = this.props;
+		pUpdate(k, val, name || index, trace);
 	}
 
 	remove(k, trace = []) {
@@ -183,7 +276,7 @@ class JsonArray extends React.PureComponent {
 		const {name, index, val:arr, update: pUpdate} = this.props;
 		const newValue = [...arr];
 		newValue.splice(k, 1);
-		pUpdate(name || index, newValue, trace);
+		pUpdate(name || index, newValue, null, trace);
 	}
 
 	render() {
@@ -200,10 +293,10 @@ class JsonArray extends React.PureComponent {
 					isNull={v === null} update={this.update} remove={this.remove} />;
 		});
 		return (
-			<div className="json-array">
-				<JsonLine name={name} index={index} val={MARKS.array.beg} remove={pRemove} />
+			<div className="json-struct array">
+				<JsonLine name={name} index={index} val={MARKS.array.beg} update={this.updateKey} remove={pRemove} />
 				<div className="json-kids">{kids}</div>
-				<JsonLine val={MARKS.array.end} comma={comma}/>
+				<JsonLine val={MARKS.array.end} comma={comma} create={this.create} ctype={TYPE_ARRAY} />
 			</div>
 		)
 	}
@@ -239,8 +332,8 @@ export class JsonEdit extends React.PureComponent {
 		this.update = this.update.bind(this);
 	}
 
-	update(k, v, trace) {
-		console.log(trace, v);
+	update(k, v, p, trace) {
+		console.log(trace);
 		const newValue = v;
 		this.setState({value: newValue});
 	}

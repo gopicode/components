@@ -1,8 +1,9 @@
 .json-edit {
 	max-width: 800px;
 	border: 1px solid #eee;
+	font-family: monospace;
 }
-.json-edit .is-hidden {
+.json-edit .hide {
 	display: none;
 }
 
@@ -10,12 +11,6 @@
 	padding: 0 0 0 20px;
 }
 
-.json-array,
-.json-object {
-}
-.json-line {
-	font-family: monospace;
-}
 .json-name {
 	padding-right: 10px;
 }
@@ -23,26 +18,23 @@
 }
 
 
-
 .json-line {
-	& .txt { display: none; }
-	& .btn {
+	font-family: monospace;
+
+	.btn {
 		margin-left: 10px;
 		border: 0;
 		background: transparent;
 		padding: 0;
 		cursor: pointer;
-		display: none;
 	}
+
+	.btn-hover { visibility: hidden; }
+	:hover .btn-hover { visibility: visible; }
 }
-.json-line.edit {
-	& .json-name {display: none;}
-	& .json-val {display: none;}
-	& .txt { display: initial; }
-	& .btn { display: initial; }
-}
-.json-line:hover {
-	& .btn-remove { display: initial; }
+
+.json-struct.wip .json-line {
+	&:hover .btn-hover { visibility: hidden; }
 }
 
 
