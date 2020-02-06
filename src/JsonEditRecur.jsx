@@ -9,14 +9,24 @@ const TYPE_NUMBER = 'number';
 const TYPE_STRING = 'string';
 const TYPE_MARKER = '__mark';
 
+class Mark {
+	constructor(name) {
+		this.name = name;
+	}
+	toString() {
+		return String(this.name)
+	}
+}
+
 const MARKS = {
 	"colon": ":",
 	"comma": ",",
 	"quote": '"',
-	"array": {beg: "[", end: "]"},
-	"object": {beg: "{", end: "}"}
+	"array": {beg: new Mark("["), end: new Mark("]")},
+	"object": {beg: new Mark("{"), end: new Mark("}")}
 }
 const MARKS_LIST = [MARKS.array.beg, MARKS.array.end, MARKS.object.beg, MARKS.object.end];
+const TYPE_LIST = [TYPE_STRING, TYPE_NUMBER, TYPE_BOOLEAN, TYPE_OBJECT, TYPE_ARRAY, TYPE_NULL];
 
 function getType(val) {
 	if (val === null) return TYPE_NULL;
@@ -25,15 +35,15 @@ function getType(val) {
 	return typeof(val);
 }
 
-function typecast(val) {
+function typecast(val, type) {
 	val = val.trim()
-	if (/^null$/i.test(val)) return null;
-	if (/^true$/i.test(val)) return true;
-	if (/^false$/i.test(val)) return false;
-	if (/^\d+$/.test(val)) return Number(val);
-	if (/^\d+\.\d+$/.test(val)) return Number(val);
-	if (/^\{\}$/i.test(val)) return {};
-	if (/^\[\]$/i.test(val)) return [];
+	if (type === TYPE_NULL) return null;
+	if (type === TYPE_BOOLEAN && val === "true") return true;
+	if (type === TYPE_BOOLEAN && val === "false") return false;
+	if (type === TYPE_BOOLEAN) return Boolean(val);
+	if (type === TYPE_NUMBER) return Number(val);
+	if (type === TYPE_OBJECT) return {};
+	if (type === TYPE_ARRAY) return [];
 	return String(val);
 }
 
@@ -95,8 +105,12 @@ class JsonLine extends React.PureComponent {
 		const $line = $form.closest('.json-line');
 		this.reset(null, $line);
 
+		const $inputType = $form.elements.type;
+		const newType = $inputType ? $inputType.value.trim() : TYPE_STRING;
+		// console.log('eee newType', newType);
+
 		const $inputValue = $form.elements.value;
-		const newValue = typecast($inputValue.value.trim());
+		const newValue = $inputValue ? typecast($inputValue.value.trim(), newType) : null;
 
 		const $inputName = $form.elements.name;
 		const newName = $inputName ? $inputName.value.trim() : null;
@@ -111,8 +125,11 @@ class JsonLine extends React.PureComponent {
 		const $line = $form.closest('.json-line');
 		this.reset(null, $line);
 
+		const $inputType = $form.elements.type;
+		const newType = $inputType ? $inputType.value.trim() : TYPE_STRING;
+
 		const $inputValue = $form.elements.value;
-		const newValue = $inputValue ? typecast($inputValue.value.trim()) : null;
+		const newValue = $inputValue ? typecast($inputValue.value.trim(), newType) : null;
 
 		const $inputName = $form.elements.name;
 		const newName = $inputName ? $inputName.value.trim() : null;
@@ -130,13 +147,18 @@ class JsonLine extends React.PureComponent {
 	}
 
 	render() {
-		const {name, val, comma, isNull, ctype, create, update, remove} = this.props;
+		const {ctype, name, val, comma, create, update, remove, toggle, expanded} = this.props;
+		const vtype = getType(val);
+		const isNull = val === undefined || val === null;
 		const quote = getType(val) === TYPE_STRING ? MARKS.quote : '';
 		return (
 			<div className="json-line">
 				{create && <form className="frm frm-create hide" onSubmit={this.create} onKeyDown={this.onKeyInput}>
-					{ctype == TYPE_OBJECT && <input className="txt" type="text" name="name" />}
-					<input className="txt" type="text" name="value" />
+					{ctype == TYPE_OBJECT && <input className="txt" type="text" name="name" defaultValue="" />}
+					<input className="txt" type="text" name="value" defaultValue="" />
+					<select name="type">
+						{TYPE_LIST.map(t => <option value={t}>{t}</option>)}
+					</select>
 					<button className="btn btn-create" type="submit">create</button>
 					<button className="btn btn-cancel" type="button" onClick={this.reset}>cancel</button>
 				</form>}
@@ -146,6 +168,7 @@ class JsonLine extends React.PureComponent {
 						{MARKS.colon}
 					</span>}
 					<span className="json-val" onClick={this.edit}>{isNull ? "null" : (quote + val + quote)}</span>
+					{toggle && <button className="btn" onClick={toggle}>{expanded ? '\u2193' : '\u2192'}</button>}
 					{remove && <button className="btn btn-hover btn-del" onClick={this.remove}>remove</button>}
 					{create && <button className="btn btn-hover btn-add" onClick={this.add}>add</button>}
 				</div>
@@ -155,6 +178,9 @@ class JsonLine extends React.PureComponent {
 						{MARKS.colon}
 					</span>}
 					<input className="txt" type="text" name="value" defaultValue={val} />
+					<select name="type">
+						{TYPE_LIST.map(t => <option value={t} selected={vtype === t}>{t}</option>)}
+					</select>
 					{comma && <span className="json-comma">{MARKS.comma}</span>}
 					<button className="btn btn-update" type="submit">update</button>
 					<button className="btn btn-cancel" type="button" onClick={this.reset}>cancel</button>
@@ -163,140 +189,106 @@ class JsonLine extends React.PureComponent {
 		)
 	}
 }
-
-class JsonObject extends React.PureComponent {
+class JsonStruct extends React.PureComponent {
 	constructor(props) {
 		super(props);
+		this.state = {kidsExpanded: true};
+
 		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
 		this.updateKey = this.updateKey.bind(this);
 		this.remove = this.remove.bind(this);
+		this.toggle = this.toggle.bind(this);
 	}
 
 	create(k, v, trace = []) {
-		// console.log('update JsonObject', k, v);
+		// console.log('create', k, v);
 		trace.push(k);
-		const {name, index, val:obj, update: pUpdate} = this.props;
-		const newValue = {...obj};
-		newValue[k] = v;
-		pUpdate(name || index, newValue, null, trace);
+		const {name, index, val, update} = this.props;
+		const type = getType(val);
+		const newValue = type === TYPE_OBJECT ? {...val, [k]: v} : [...val, v];
+		update(name || index, newValue, null, trace);
 	}
 
 	update(k, v, p, trace = []) {
-		console.log('update JsonObject', k, v, p);
+		// console.log('update', k, v, p);
 		trace.push(k);
-		const {name, index, val:obj, update: pUpdate} = this.props;
-		const newValue = {...obj};
-		newValue[k] = v;
-		// if the key changed, remove it from the clone
-		if (p && p != k) {
-			delete newValue[p]
+		const {name, index, val, update} = this.props;
+		const type = getType(val);
+		let newValue;
+		if (type === TYPE_OBJECT) {
+			// if the key changed
+			if (p && p != k) {
+				// delete newValue[p]
+				// to retain the position of the changed key, iterate the object and flip the key at the exact order
+				newValue = {};
+				Object.entries(val).forEach(([k2, v2]) => {
+					if (k2 == p) newValue[k] = v;
+					else newValue[k2] = v2;
+				})
+			} else {
+				newValue = {...val};
+				newValue[k] = v;
+			}
+		} else {
+			newValue = [...val];
+			newValue[k] = v;
 		}
-		pUpdate(name || index, newValue, null, trace);
+		update(name || index, newValue, null, trace);
 	}
 
 	updateKey(k, v, p, trace = []) {
-		console.log('updateKey JsonObject', k, v, p);
+		// console.log('updateKey', k, v, p);
 		trace.push(k);
-		const {name, index, val, update: pUpdate} = this.props;
-		pUpdate(k, val, name || index, trace);
+		const {name, index, val, update} = this.props;
+		update(k, val, name || index, trace);
 	}
 
 	remove(k, trace = []) {
-		// console.log('remove JsonObject', k);
+		// console.log('remove', k);
 		trace.push(k);
-		const {name, index, val:obj, update: pUpdate} = this.props;
-		const newValue = {...obj};
-		delete newValue[k];
-		pUpdate(name || index, newValue, null, trace);
+		const {name, index, val, update} = this.props;
+		const type = getType(val);
+		let newValue;
+		if (type === TYPE_OBJECT) {
+			newValue = {...val};
+			delete newValue[k];
+		} else {
+			newValue = [...val];
+			newValue.splice(k, 1);
+		}
+		update(name || index, newValue, null, trace);
+	}
+
+	toggle(e) {
+		e.preventDefault();
+		// const $el = e.currentTarget;
+		// const $struct = $el.closest('.json-struct');
+		// const $kids = $struct.querySelector('.json-kids');
+		// $kids.classList.toggle('hide');
+		this.setState({kidsExpanded: !this.state.kidsExpanded})
 	}
 
 	render() {
-		const {name, index, val:obj, remove: pRemove, comma} = this.props;
-		const keys = Object.keys(obj);
+		const {kidsExpanded} = this.state;
+		const {name, index, val, remove, comma} = this.props;
+		const type = getType(val);
+		const keys = Object.keys(val);
 		const kids = keys.map((k, i) => {
-			const v = obj[k];
-			const type = getType(v);
+			const v = val[k];
+			const t = getType(v);
 			const comma = (i < keys.length - 1);
-			if (type === TYPE_ARRAY)
-				return <JsonArray key={i} name={k} val={v} comma={comma} update={this.update} remove={this.remove} />;
-			else if (type === TYPE_OBJECT)
-				return <JsonObject key={i} name={k} val={v} comma={comma} update={this.update} remove={this.remove} />;
-			else
-				return <JsonLine key={i} name={k} val={v} comma={comma}
-					isNull={v === null} update={this.update} remove={this.remove} />;
+			const name = type === TYPE_OBJECT ? k : undefined;
+			const index = type === TYPE_ARRAY ? k : undefined;
+			const JsonItem = (t === TYPE_ARRAY || t === TYPE_OBJECT) ? JsonStruct : JsonLine;
+			return <JsonItem key={i} name={name} index={index} val={v} comma={comma} update={this.update} remove={this.remove} />;
 		});
 		return (
-			<div className="json-struct object">
-				<JsonLine name={name} index={index} val={MARKS.object.beg} update={this.updateKey} remove={pRemove} />
-				<div className="json-kids">{kids}</div>
-				<JsonLine val={MARKS.object.end} comma={comma} create={this.create} ctype={TYPE_OBJECT} />
-			</div>
-		)
-	}
-}
-
-class JsonArray extends React.PureComponent {
-	constructor(props) {
-		super(props);
-		this.create = this.create.bind(this);
-		this.update = this.update.bind(this);
-		this.updateKey = this.updateKey.bind(this);
-		this.remove = this.remove.bind(this);
-	}
-
-	create(k, v, trace = []) {
-		// console.log('update JsonArray', k, v);
-		trace.push(k);
-		const {name, index, val:arr, update: pUpdate} = this.props;
-		const newValue = [...arr];
-		newValue.push(v);
-		pUpdate(name || index, newValue, null, trace);
-	}
-
-	update(k, v, p, trace = []) {
-		console.log('update JsonArray', k, v, p);
-		trace.push(k);
-		const {name, index, val:arr, update: pUpdate} = this.props;
-		const newValue = [...arr];
-		newValue[k] = v;
-		pUpdate(name || index, newValue, null, trace);
-	}
-
-	updateKey(k, v, p, trace = []) {
-		console.log('updateKey JsonArray', k, v, p);
-		trace.push(k);
-		const {name, index, val, update: pUpdate} = this.props;
-		pUpdate(k, val, name || index, trace);
-	}
-
-	remove(k, trace = []) {
-		console.log('remove JsonArray', k);
-		trace.push(k);
-		const {name, index, val:arr, update: pUpdate} = this.props;
-		const newValue = [...arr];
-		newValue.splice(k, 1);
-		pUpdate(name || index, newValue, null, trace);
-	}
-
-	render() {
-		const {name, index, val:arr, remove: pRemove, comma} = this.props;
-		const kids = arr.map((v, i) => {
-			const type = getType(v);
-			const comma = (i < arr.length - 1);
-			if (type === TYPE_ARRAY)
-				return <JsonArray key={i} index={i} val={v} comma={comma} update={this.update} remove={this.remove} />;
-			else if (type === TYPE_OBJECT)
-				return <JsonObject key={i} index={i} val={v} comma={comma} update={this.update} remove={this.remove} />;
-			else
-				return <JsonLine key={i} index={i} val={v} comma={comma}
-					isNull={v === null} update={this.update} remove={this.remove} />;
-		});
-		return (
-			<div className="json-struct array">
-				<JsonLine name={name} index={index} val={MARKS.array.beg} update={this.updateKey} remove={pRemove} />
-				<div className="json-kids">{kids}</div>
-				<JsonLine val={MARKS.array.end} comma={comma} create={this.create} ctype={TYPE_ARRAY} />
+			<div className={"json-struct " + type}>
+				<JsonLine name={name} index={index} val={MARKS[type].beg} update={this.updateKey} remove={remove}
+					toggle={kids.length ? this.toggle : null} expanded={kidsExpanded} />
+				{kidsExpanded && <div className="json-kids">{kids}</div>}
+				<JsonLine val={MARKS[type].end} comma={comma} create={this.create} ctype={type} />
 			</div>
 		)
 	}
@@ -305,13 +297,13 @@ class JsonArray extends React.PureComponent {
 const sample = {
 	a: 12,
 	b: {
-		c: 32,
+		c: null,
 		g: {
 			t: 55,
 			m: [10, 20]
 		},
 		h: ["some", "thing", {p: true, q: false}],
-		m: 15
+		m: "["
 	},
 	d: "ok"
 };
@@ -342,7 +334,7 @@ export class JsonEdit extends React.PureComponent {
 		return (
 		<div className={"json-edit"}>
 			<div>
-				<JsonObject val={this.state.value} update={this.update} />
+				<JsonStruct val={this.state.value} update={this.update} />
 			</div>
 			<div>
 				<button type="button" onClick={e => this.props.onChange(this.state.value)}>Save</button>
