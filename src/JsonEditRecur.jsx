@@ -164,18 +164,16 @@ class JsonLine extends React.PureComponent {
 				</form>}
 				<div className="json-item">
 					{name && <span>
-						<span className="json-name" onClick={this.edit}>{name}</span>
-						{MARKS.colon}
+						<span className="json-name" onClick={this.edit}>{name}{MARKS.colon}</span>
 					</span>}
 					<span className="json-val" onClick={this.edit}>{isNull ? "null" : (quote + val + quote)}</span>
-					{toggle && <button className="btn" onClick={toggle}>{expanded ? '\u2193' : '\u2192'}</button>}
+					{toggle && <button className="btn btn-hover btn-arrow" onClick={toggle}>{expanded ? '\u2193' : '\u2192'}</button>}
 					{remove && <button className="btn btn-hover btn-del" onClick={this.remove}>remove</button>}
 					{create && <button className="btn btn-hover btn-add" onClick={this.add}>add</button>}
 				</div>
 				{update && <form className="frm frm-update hide" onSubmit={this.update} onKeyDown={this.onKeyInput}>
 					{name && <span>
-						<input className="txt" type="text" name="name" defaultValue={name} />
-						{MARKS.colon}
+						<input className="txt" type="text" name="name" defaultValue={name} />{MARKS.colon}
 					</span>}
 					<input className="txt" type="text" name="value" defaultValue={val} />
 					<select name="type">
@@ -219,7 +217,6 @@ class JsonStruct extends React.PureComponent {
 		if (type === TYPE_OBJECT) {
 			// if the key changed
 			if (p && p != k) {
-				// delete newValue[p]
 				// to retain the position of the changed key, iterate the object and flip the key at the exact order
 				newValue = {};
 				Object.entries(val).forEach(([k2, v2]) => {
@@ -262,10 +259,6 @@ class JsonStruct extends React.PureComponent {
 
 	toggle(e) {
 		e.preventDefault();
-		// const $el = e.currentTarget;
-		// const $struct = $el.closest('.json-struct');
-		// const $kids = $struct.querySelector('.json-kids');
-		// $kids.classList.toggle('hide');
 		this.setState({kidsExpanded: !this.state.kidsExpanded})
 	}
 
