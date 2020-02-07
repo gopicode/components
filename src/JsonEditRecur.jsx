@@ -57,12 +57,27 @@ class JsonLine extends React.PureComponent {
 		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
 		this.remove = this.remove.bind(this);
+		this.onKeyDown = this.onKeyDown.bind(this);
 		this.onKeyInput = this.onKeyInput.bind(this);
 	}
 
-	onKeyInput(e) {
+	onKeyDown(e) {
 		// console.log('key', e.key);
-		if (e.key == "Escape") this.reset(e);
+		if (e.key == "Escape") return this.reset(e);
+	}
+
+	onKeyInput(e) {
+		if (e.target.name === 'value') {
+			const $input = e.target;
+			const $select = $input.form.elements.type;
+			const val = $input.value.trim();
+			if (/^[\d\.]+$/.test(val)) $select.value = TYPE_NUMBER;
+			else if (/^(false|true)$/i.test(val)) $select.value = TYPE_BOOLEAN;
+			else if (/^null$/i.test(val)) $select.value = TYPE_NULL;
+			else if (/^\{\}$/i.test(val)) $select.value = TYPE_OBJECT;
+			else if (/^\[\]$/i.test(val)) $select.value = TYPE_ARRAY;
+			else $select.value = TYPE_STRING;
+		}
 	}
 
 	reset(e, $line) {
@@ -85,6 +100,7 @@ class JsonLine extends React.PureComponent {
 		$struct.classList.add('wip');
 		$form.classList.remove('hide');
 		$form.elements[0].focus();
+		$form.elements[0].select();
 	}
 
 	edit(e) {
@@ -97,6 +113,7 @@ class JsonLine extends React.PureComponent {
 		$item.classList.add('hide');
 		$form.classList.remove('hide');
 		$form.elements[0].focus();
+		$form.elements[0].select();
 	}
 
 	create(e) {
@@ -153,7 +170,7 @@ class JsonLine extends React.PureComponent {
 		const quote = getType(val) === TYPE_STRING ? MARKS.quote : '';
 		return (
 			<div className="json-line">
-				{create && <form className="frm frm-create hide" onSubmit={this.create} onKeyDown={this.onKeyInput}>
+				{create && <form className="frm frm-create hide" onSubmit={this.create} onKeyDown={this.onKeyDown} onInput={this.onKeyInput}>
 					{ctype == TYPE_OBJECT && <input className="txt" type="text" name="name" defaultValue="" />}
 					<input className="txt" type="text" name="value" defaultValue="" />
 					<select name="type">
@@ -171,7 +188,7 @@ class JsonLine extends React.PureComponent {
 					{remove && <button className="btn btn-hover btn-del" onClick={this.remove}>remove</button>}
 					{create && <button className="btn btn-hover btn-add" onClick={this.add}>add</button>}
 				</div>
-				{update && <form className="frm frm-update hide" onSubmit={this.update} onKeyDown={this.onKeyInput}>
+				{update && <form className="frm frm-update hide" onSubmit={this.update} onKeyDown={this.onKeyDown} onInput={this.onKeyInput}>
 					{name && <span>
 						<input className="txt" type="text" name="name" defaultValue={name} />{MARKS.colon}
 					</span>}
@@ -217,6 +234,7 @@ class JsonStruct extends React.PureComponent {
 		if (type === TYPE_OBJECT) {
 			// if the key changed
 			if (p && p != k) {
+				trace.push('remove', p);
 				// to retain the position of the changed key, iterate the object and flip the key at the exact order
 				newValue = {};
 				Object.entries(val).forEach(([k2, v2]) => {
