@@ -164,7 +164,7 @@ class JsonLine extends React.PureComponent {
 	}
 
 	render() {
-		const {ctype, name, val, comma, create, update, remove, toggle, expanded} = this.props;
+		const {ctype, name, val, comma, create, update, remove, toggle, expanded, isMarker} = this.props;
 		const vtype = getType(val);
 		const isNull = val === undefined || val === null;
 		const quote = getType(val) === TYPE_STRING ? MARKS.quote : '';
@@ -192,10 +192,10 @@ class JsonLine extends React.PureComponent {
 					{name && <span>
 						<input className="txt" type="text" name="name" defaultValue={name} />{MARKS.colon}
 					</span>}
-					<input className="txt" type="text" name="value" defaultValue={val} />
-					<select name="type">
+					{!isMarker && <input className="txt" type="text" name="value" defaultValue={val} />}
+					{!isMarker && <select name="type">
 						{TYPE_LIST.map(t => <option value={t} selected={vtype === t}>{t}</option>)}
-					</select>
+					</select>}
 					{comma && <span className="json-comma">{MARKS.comma}</span>}
 					<button className="btn btn-update" type="submit">update</button>
 					<button className="btn btn-cancel" type="button" onClick={this.reset}>cancel</button>
@@ -296,7 +296,8 @@ class JsonStruct extends React.PureComponent {
 		});
 		return (
 			<div className={"json-struct " + type}>
-				<JsonLine name={name} index={index} val={MARKS[type].beg} update={this.updateKey} remove={remove}
+				<JsonLine name={name} index={index} val={MARKS[type].beg}
+					update={this.updateKey} isMarker={true} remove={remove}
 					toggle={kids.length ? this.toggle : null} expanded={kidsExpanded} />
 				{kidsExpanded && <div className="json-kids">{kids}</div>}
 				<JsonLine val={MARKS[type].end} comma={comma} create={this.create} ctype={type} />
