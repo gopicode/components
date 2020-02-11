@@ -132,6 +132,7 @@ class JsonLine extends React.PureComponent {
 		const $inputName = $form.elements.name;
 		const newName = $inputName ? $inputName.value.trim() : null;
 
+		if (!(newName || newValue)) return;
 		const trace = ['create', newValue];
 		this.props.create(newName, newValue, trace);
 	}
@@ -152,6 +153,7 @@ class JsonLine extends React.PureComponent {
 		const newName = $inputName ? $inputName.value.trim() : null;
 
 		const {name, index} = this.props;
+		if (!(newName || index || newValue)) return;
 		const trace = ['update', newValue];
 		this.props.update(newName || index, newValue, name || index, trace);
 	}
@@ -207,13 +209,22 @@ class JsonLine extends React.PureComponent {
 class JsonStruct extends React.PureComponent {
 	constructor(props) {
 		super(props);
-		this.state = {kidsExpanded: true};
+		this.state = {
+			kidsExpanded: props.expandAll
+		};
 
 		this.create = this.create.bind(this);
 		this.update = this.update.bind(this);
 		this.updateKey = this.updateKey.bind(this);
 		this.remove = this.remove.bind(this);
 		this.toggle = this.toggle.bind(this);
+	}
+
+	componentDidUpdate(prevProps) {
+		const {props} = this;
+		if (prevProps.expandAll !== props.expandAll) {
+			this.setState({kidsExpanded: props.expandAll});
+		}
 	}
 
 	create(k, v, trace = []) {
@@ -282,7 +293,7 @@ class JsonStruct extends React.PureComponent {
 
 	render() {
 		const {kidsExpanded} = this.state;
-		const {name, index, val, remove, comma} = this.props;
+		const {name, index, val, remove, comma, expandAll} = this.props;
 		const type = getType(val);
 		const keys = Object.keys(val);
 		const kids = keys.map((k, i) => {
@@ -292,64 +303,74 @@ class JsonStruct extends React.PureComponent {
 			const name = type === TYPE_OBJECT ? k : undefined;
 			const index = type === TYPE_ARRAY ? k : undefined;
 			const JsonItem = (t === TYPE_ARRAY || t === TYPE_OBJECT) ? JsonStruct : JsonLine;
-			return <JsonItem key={i} name={name} index={index} val={v} comma={comma} update={this.update} remove={this.remove} />;
+			return <JsonItem key={i} name={name} index={index} val={v} comma={comma}
+					update={this.update} remove={this.remove} expandAll={expandAll} />;
 		});
 		return (
 			<div className={"json-struct " + type}>
 				<JsonLine name={name} index={index} val={MARKS[type].beg}
-					update={this.updateKey} isMarker={true} remove={remove}
-					toggle={kids.length ? this.toggle : null} expanded={kidsExpanded} />
+					update={this.updateKey} remove={remove}
+					toggle={kids.length ? this.toggle : null} expanded={kidsExpanded} isMarker={true} />
 				{kidsExpanded && <div className="json-kids">{kids}</div>}
 				<JsonLine val={MARKS[type].end} comma={comma} create={this.create} ctype={type} />
 			</div>
 		)
 	}
 }
+JsonStruct.defaultProps = {
+	expanded: true,
+	expandAll: true
+};
 
 const sample = {
 	a: 12,
 	b: {
-		c: null,
-		g: {
-			t: 55,
-			m: [10, 20]
+		d: null,
+		e: {
+			m: 55,
+			n: [10, "nike"]
 		},
-		h: ["some", "thing", {p: true, q: false}],
-		m: "["
+		f: ["some", "thing", {p: true, q: false, s: ['s', 'm', 'xl']}],
+		g: "["
 	},
-	d: "ok"
+	c: "ok"
 };
 export class JsonEdit extends React.PureComponent {
 	constructor(props) {
 		super(props);
 
-		// clone the json value
 		// const value = props.value;
 		// const valueClone = JSON.parse(typeof value === 'string' ? value : JSON.stringify(value));
 
 		this.state = {
 			// value: valueClone,
 			value:sample,
-			action: ''
+			expandAll: true
 		};
 
 		this.update = this.update.bind(this);
+		this.onClickExpandAll = this.onClickExpandAll.bind(this);
 	}
 
 	update(k, v, p, trace) {
 		console.log(trace);
-		const newValue = v;
-		this.setState({value: newValue});
+		this.setState({value: v});
+	}
+
+	onClickExpandAll(e) {
+		this.setState({expandAll: !this.state.expandAll});
 	}
 
 	render() {
+		const {value, expandAll} = this.state;
 		return (
 		<div className={"json-edit"}>
 			<div>
-				<JsonStruct val={this.state.value} update={this.update} />
+				<JsonStruct val={this.state.value} update={this.update} expandAll={expandAll} />
 			</div>
 			<div>
-				<button type="button" onClick={e => this.props.onChange(this.state.value)}>Save</button>
+				<button type="button" onClick={e => this.props.onChange(value)}>Save</button>
+				<button type="button" onClick={this.onClickExpandAll}>{expandAll ? 'Collapse' : 'Expand'} All</button>
 			</div>
 		</div>
 		)
